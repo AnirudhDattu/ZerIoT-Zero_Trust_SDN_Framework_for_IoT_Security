@@ -194,7 +194,6 @@ http://<controller-ip>:5000
 
 ### Dashboard Features
 
-![Dashboard Overview](https://via.placeholder.com/800x400/1e1e2f/00d4ff?text=Dashboard+Overview)
 *Real-time device monitoring and control interface*
 
 **Device Overview Table**:
@@ -204,7 +203,6 @@ http://<controller-ip>:5000
 - See rate limit status
 - Authorize/Revoke devices instantly
 
-![Network Topology](https://via.placeholder.com/800x400/1e1e2f/00ff90?text=Network+Topology+Visualization)
 *Interactive network topology with MAC addresses*
 
 **Network Topology**:
@@ -213,7 +211,6 @@ http://<controller-ip>:5000
 - Real-time connection status
 - MAC address identification
 
-![SDN Policies](https://via.placeholder.com/800x400/1e1e2f/ff6b6b?text=SDN+Policy+Controls)
 *Dynamic SDN policy management*
 
 **SDN Policy Controls**:
@@ -327,49 +324,12 @@ Found a bug or have a suggestion? Please [open an issue](https://github.com/Anir
 
 ---
 
-## 📄 License
-
-This project is licensed under the **MIT License** - see below for details.
-
-```
-MIT License
-
-Copyright (c) 2024 ZerIoT Contributors
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-```
-
----
-
 ## 🌟 Acknowledgments
 
 - **NIST SP 800-207**: Zero Trust Architecture guidelines
 - **vis.js**: Network visualization library
 - **ESP32 Community**: Hardware and firmware support
 - **Flask Community**: Web framework and extensions
-
----
-
-## 📞 Contact & Support
-
-- **GitHub Issues**: [Report bugs or request features](https://github.com/AnirudhDattu/ZerIoT-Zero-Trust-SDN-Framework-for-IoT-Security/issues)
-- **Repository**: [github.com/AnirudhDattu/ZerIoT-Zero-Trust-SDN-Framework-for-IoT-Security](https://github.com/AnirudhDattu/ZerIoT-Zero-Trust-SDN-Framework-for-IoT-Security)
 
 ---
 
