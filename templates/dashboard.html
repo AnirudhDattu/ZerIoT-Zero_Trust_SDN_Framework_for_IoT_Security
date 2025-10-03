@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SDN IoT Advanced Dashboard</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1e1e2f 0%, #2a2a4a 100%);
+            color: #e0e0e0;
+            padding: 20px;
+        }
+        h1, h2 {
+            color: #00d4ff;
+            text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+            margin-bottom: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(5px);
+        }
+        .section h2 {
+            margin-top: 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        th, td {
+            padding: 12px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        th {
+            background: linear-gradient(45deg, #00d4ff, #007bff);
+            color: #fff;
+        }
+        td {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        .authorized {
+            background: rgba(0, 255, 144, 0.2);
+            color: #00ff90;
+        }
+        .unauthorized {
+            background: rgba(255, 99, 71, 0.2);
+            color: #ff6347;
+        }
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background: linear-gradient(45deg, #00d4ff, #007bff);
+            color: #fff;
+            transition: transform 0.1s, box-shadow 0.2s;
+        }
+        button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+        }
+        #network {
+            width: 100%;
+            height: 500px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+        }
+        .legend {
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        .legend span {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            vertical-align: middle;
+            margin-right: 5px;
+        }
+        .graph-container {
+            text-align: center;
+        }
+        .graph-container img {
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+        .packet-counter {
+            text-align: center;
+            font-size: 24px;
+            margin: 20px 0;
+            color: #00ff90;
+            text-shadow: 0 0 10px rgba(0, 255, 144, 0.5);
+        }
+        .health-metrics, .policy-controls, .sdn-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .metric-card, .policy-card, .sdn-metric {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .metric-card h3, .policy-card h3, .sdn-metric h3 {
+            margin: 0 0 10px;
+            color: #00d4ff;
+        }
+        .metric-bar {
+            height: 10px;
+            background: #444;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        .metric-bar div {
+            height: 100%;
+            background: linear-gradient(90deg, #00d4ff, #007bff);
+            transition: width 0.5s ease;
+        }
+        .policy-logs {
+            max-height: 200px;
+            overflow-y: auto;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .policy-logs p {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+    </style>
+    <script src="static\vis-network.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>SDN IoT Advanced Dashboard</h1>
+
+        <div class="section">
+            <h2>Device Overview</h2>
+            <table>
+                <tr>
+                    <th>Device ID</th>
+                    <th>Status</th>
+                    <th>Packets Received</th>
+                    <th>Rate Limit Status</th>
+                    <th>Blocked Reason</th>
+                    <th>Action</th>
+                </tr>
+                {% for device, authorized in devices.items() %}
+                <tr>
+                    <td>{{ device }}</td>
+                    <td class="{{ 'authorized' if authorized else 'unauthorized' }}">
+                        {{ 'Authorized' if authorized else 'Unauthorized' }}
+                    </td>
+                    <td id="packets-{{ device }}">{{ data[device] }}</td>
+                    <td id="rate-limit-{{ device }}">0/60</td>
+                    <td id="blocked-reason-{{ device }}">-</td>
+                    <td>
+                        <form method="POST" action="/update">
+                            <input type="hidden" name="device_id" value="{{ device }}">
+                            <button type="submit" name="action" value="{{ 'revoke' if authorized else 'authorize' }}">
+                                {{ 'Revoke' if authorized else 'Authorize' }}
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+
+        <div class="section packet-counter">
+            Total Packets Received: <span id="total-packets">0</span>
+        </div>
+
+        <div class="section">
+            <h2>Network Topology</h2>
+            <div class="legend">
+                <span style="background-color: #90ee90;"></span> Online
+                <span style="background-color: #ffcccb; margin-left: 20px;"></span> Offline
+            </div>
+            <div id="network"></div>
+        </div>
+
+        <div class="section graph-container">
+            <h2>Packets Received Over Time</h2>
+            <img src="/graph" id="graph" onload="setTimeout(() => this.src='/graph?'+Date.now(), 5000)">
+        </div>
+
+        <div class="section">
+            <h2>Device Health Metrics</h2>
+            <div class="health-metrics" id="health-metrics"></div>
+        </div>
+
+        <div class="section">
+            <h2>SDN Policy Controls</h2>
+            <div class="policy-controls">
+                <div class="policy-card">
+                    <h3>Packet Inspection</h3>
+                    <form method="POST" action="/update_policy">
+                        <input type="hidden" name="policy" value="packet_inspection">
+                        <button type="submit" name="action" value="enable">Enable</button>
+                        <button type="submit" name="action" value="disable">Disable</button>
+                    </form>
+                </div>
+                <div class="policy-card">
+                    <h3>Traffic Shaping</h3>
+                    <form method="POST" action="/update_policy">
+                        <input type="hidden" name="policy" value="traffic_shaping">
+                        <button type="submit" name="action" value="enable">Enable</button>
+                        <button type="submit" name="action" value="disable">Disable</button>
+                    </form>
+                </div>
+                <div class="policy-card">
+                    <h3>Dynamic Routing</h3>
+                    <form method="POST" action="/update_policy">
+                        <input type="hidden" name="policy" value="dynamic_routing">
+                        <button type="submit" name="action" value="enable">Enable</button>
+                        <button type="submit" name="action" value="disable">Disable</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Policy Enforcement Logs</h2>
+            <div class="policy-logs" id="policy-logs"></div>
+        </div>
+
+        <div class="section">
+            <h2>SDN Metrics</h2>
+            <div class="sdn-metrics" id="sdn-metrics"></div>
+        </div>
+    </div>
+
+    <script>
+        let totalPackets = 0;
+
+        function updatePacketCounts() {
+            fetch('/get_data')
+                .then(response => response.json())
+                .then(data => {
+                    let newTotal = 0;
+                    for (const device in data) {
+                        const packetsEl = document.getElementById(`packets-${device}`);
+                        const rateLimitEl = document.getElementById(`rate-limit-${device}`);
+                        const blockedReasonEl = document.getElementById(`blocked-reason-${device}`);
+                        if (packetsEl) packetsEl.textContent = data[device].packets;
+                        if (rateLimitEl) rateLimitEl.textContent = data[device].rate_limit_status;
+                        if (blockedReasonEl) blockedReasonEl.textContent = data[device].blocked_reason || '-';
+                        newTotal += data[device].packets;
+                    }
+                    animatePacketCounter(newTotal);
+                })
+                .catch(error => console.error('Error fetching data:', error));
+        }
+
+        function animatePacketCounter(newTotal) {
+            const counter = document.getElementById('total-packets');
+            const start = totalPackets;
+            const end = newTotal;
+            const duration = 1000;
+            let startTime = null;
+
+            function step(timestamp) {
+                if (!startTime) startTime = timestamp;
+                const progress = Math.min((timestamp - startTime) / duration, 1);
+                const current = Math.floor(start + (end - start) * progress);
+                counter.textContent = current;
+                if (progress < 1) {
+                    requestAnimationFrame(step);
+                } else {
+                    totalPackets = end;
+                }
+            }
+            requestAnimationFrame(step);
+        }
+
+        function updateTopology() {
+            fetch('/get_topology_with_mac')
+                .then(response => response.json())
+                .then(data => {
+                    const nodes = new vis.DataSet(data.nodes.map(node => ({
+                        id: node.id,
+                        label: `${node.label}\n${node.mac}\n${node.online ? 'Online' : 'Offline'}`,
+                        title: `Last Seen: ${new Date(node.last_seen * 1000).toLocaleTimeString()}\nPackets: ${node.packets}`,
+                        color: node.online ? '#90ee90' : '#ffcccb',
+                        font: { multi: true, size: 12 }
+                    })));
+                    
+                    const edges = new vis.DataSet(data.edges.map(edge => ({
+                        from: edge.from,
+                        to: edge.to,
+                        color: { color: '#848484' },
+                        dashes: true,
+                        arrows: 'to'
+                    })));
+                    
+                    const container = document.getElementById('network');
+                    const networkData = { nodes: nodes, edges: edges };
+                    const options = {
+                        nodes: {
+                            shape: 'dot',
+                            size: 30,
+                            font: { size: 12, multi: true, align: 'center' }
+                        },
+                        edges: {
+                            width: 2
+                        },
+                        physics: {
+                            enabled: true,
+                            stabilization: true,
+                            barnesHut: {
+                                gravitationalConstant: -3000,
+                                springLength: 150
+                            }
+                        }
+                    };
+                    const network = new vis.Network(container, networkData, options);
+                })
+                .catch(error => console.error('Error fetching topology:', error));
+        }
+
+        function updateHealthMetrics() {
+            fetch('/get_health_metrics')
+                .then(response => response.json())
+                .then(data => {
+                    const container = document.getElementById('health-metrics');
+                    container.innerHTML = '';
+                    for (const device in data) {
+                        const metrics = data[device];
+                        const card = document.createElement('div');
+                        card.className = 'metric-card';
+                        card.innerHTML = `
+                            <h3>${device}</h3>
+                            <p>CPU Usage: ${metrics.cpu_usage}%</p>
+                            <div class="metric-bar"><div style="width: ${metrics.cpu_usage}%"></div></div>
+                            <p>Memory Usage: ${metrics.memory_usage}%</p>
+                            <div class="metric-bar"><div style="width: ${metrics.memory_usage}%"></div></div>
+                            <p>Uptime: ${metrics.uptime} seconds</p>
+                        `;
+                        container.appendChild(card);
+                    }
+                })
+                .catch(error => console.error('Error fetching health metrics:', error));
+        }
+
+        function updatePolicyLogs() {
+            fetch('/get_policy_logs')
+                .then(response => response.json())
+                .then(logs => {
+                    const container = document.getElementById('policy-logs');
+                    container.innerHTML = '';
+                    logs.forEach(log => {
+                        const p = document.createElement('p');
+                        p.textContent = log;
+                        container.appendChild(p);
+                    });
+                    container.scrollTop = container.scrollHeight;  // Auto-scroll to bottom
+                })
+                .catch(error => console.error('Error fetching policy logs:', error));
+        }
+
+        function updateSDNMetrics() {
+            fetch('/get_sdn_metrics')
+                .then(response => response.json())
+                .then(data => {
+                    const container = document.getElementById('sdn-metrics');
+                    container.innerHTML = '';
+                    for (const [metric, value] of Object.entries(data)) {
+                        const card = document.createElement('div');
+                        card.className = 'sdn-metric';
+                        const metricName = metric.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase());
+                        card.innerHTML = `
+                            <h3>${metricName}</h3>
+                            <p>${value} ${metric.includes('latency') ? 'ms' : metric.includes('throughput') ? 'Mbps' : '%'}</p>
+                        `;
+                        container.appendChild(card);
+                    }
+                })
+                .catch(error => console.error('Error fetching SDN metrics:', error));
+        }
+
+        setInterval(() => {
+            updatePacketCounts();
+            updateTopology();
+            updateHealthMetrics();
+            updatePolicyLogs();
+            updateSDNMetrics();
+        }, 5000);
+
+        updatePacketCounts();
+        updateTopology();
+        updateHealthMetrics();
+        updatePolicyLogs();
+        updateSDNMetrics();
+    </script>
+</body>
+</html>
